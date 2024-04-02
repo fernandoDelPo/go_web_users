@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+
 	"github.com/fernandoDelPo/go_web_users/internal/user"
 	"github.com/fernandoDelPo/go_web_users/pkg/bootstrapt"
+	"github.com/fernandoDelPo/go_web_users/pkg/handler"
 )
 
 func main() {
@@ -21,7 +23,8 @@ func main() {
 
 	ctx := context.Background()
 
-	server.HandleFunc("/users", user.MakeEndpoints(ctx, service))
+	handler.NewUserHTPPServer(ctx, server,user.MakeEndpoints(ctx, service))
+
 	fmt.Println("Starting server on port :8080")
 	log.Fatal(http.ListenAndServe(":8080", server))
 
