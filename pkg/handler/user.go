@@ -27,6 +27,12 @@ func UserServer(ctx context.Context, endpoints user.Endpoints) func(w http.Respo
 				decodeGetAllUsers,
 				encodeResponse,
 				encondeError)
+		case http.MethodPost:
+			tran.Server(
+				transport.Endpoint(endpoints.Create),
+				decodeCreateUser,
+				encodeResponse,
+				encondeError)
 			return
 		}
 		InvalidMethod(w)
@@ -35,6 +41,14 @@ func UserServer(ctx context.Context, endpoints user.Endpoints) func(w http.Respo
 
 func decodeGetAllUsers(ctx context.Context, r *http.Request) (interface{}, error) {
 	return nil, nil
+}
+
+func decodeCreateUser(ctx context.Context, r *http.Request) (interface{}, error) {
+	var req user.CreateRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		return nil, fmt.Errorf("error decoding request body:  '%v'", err.Error())
+	}
+	return req, nil
 }
 
 func encodeResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error {
@@ -48,7 +62,7 @@ func encodeResponse(ctx context.Context, w http.ResponseWriter, response interfa
 	w.WriteHeader(status)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	fmt.Fprintf(w, `{"status": %d, "data": %s}`, status, data)
-	return  nil
+	return nil
 
 }
 
