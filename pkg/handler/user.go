@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/fernandoDelPo/go_web_users/internal/user"
@@ -12,31 +13,70 @@ import (
 
 func NewUserHTPPServer(ctx context.Context, router *http.ServeMux, endpoints user.Endpoints) {
 
-	router.HandleFunc("/users", UserServer(ctx, endpoints))
+	router.HandleFunc("/users/", UserServer(ctx, endpoints))
 
 }
 
 func UserServer(ctx context.Context, endpoints user.Endpoints) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 
+		url := r.URL.Path
+		log.Println(r.Method, ": ", url)
+
+		path, pathSize := transport.Clean(url)
+
+		if pathSize < 3 || pathSize > 4 {
+			InvalidMethod(w)
+			return
+		}
+
+		params := make(map[string]string)
+
+		if pathSize == 4 && path[2] != "" {
+			params["userID"] = path[2]
+		}
+		ctx = context.WithValue(ctx, "params", params)
+
 		tran := transport.New(w, r, ctx)
 		switch r.Method {
 		case http.MethodGet:
-			tran.Server(
-				transport.Endpoint(endpoints.GetAll),
-				decodeGetAllUsers,
-				encodeResponse,
-				encondeError)
+			switch pathSize {
+			case 3:
+				tran.Server(
+					transport.Endpoint(endpoints.GetAll),
+					decodeGetAllUsers,
+					encodeResponse,
+					encondeError)
+			case 4:
+				tran.Server(
+					nil,
+					decodeGetUser,
+					encodeResponse,
+					encondeError)
+			}
+
 		case http.MethodPost:
-			tran.Server(
-				transport.Endpoint(endpoints.Create),
-				decodeCreateUser,
-				encodeResponse,
-				encondeError)
-			return
+			switch pathSize {
+			case 3:
+				tran.Server(
+					transport.Endpoint(endpoints.Create),
+					decodeCreateUser,
+					encodeResponse,
+					encondeError)
+				return
+			}
 		}
 		InvalidMethod(w)
 	}
+}
+
+func decodeGetUser(ctx context.Context, r *http.Request) (interface{}, error) {
+	params := ctx.Value("params").(map[string]string)
+
+	fmt.Println(params)
+	fmt.Println(params["userID"])
+
+	return nil, fmt.Errorf("not implemented")
 }
 
 func decodeGetAllUsers(ctx context.Context, r *http.Request) (interface{}, error) {

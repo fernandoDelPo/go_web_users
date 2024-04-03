@@ -3,6 +3,7 @@ package transport
 import (
 	"context"
 	"net/http"
+	"strings"
 )
 
 type (
@@ -51,8 +52,22 @@ func (t *transport) Server(
 		return
 	}
 
-	if err := encode(t.ctx, t.w, res);  err != nil {
+	if err := encode(t.ctx, t.w, res); err != nil {
 		encodeError(t.ctx, err, t.w)
 		return
 	}
+}
+
+func Clean(url string) ([]string, int) {
+	if url[0] != '/' {
+		url = "/" + url
+	}
+
+	if url[len(url)-1] != '/' {
+		url = url + "/"
+	}
+
+	parts := strings.Split(url, "/")
+
+	return parts, len(parts)
 }
