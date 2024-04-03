@@ -3,7 +3,6 @@ package user
 import (
 	"context"
 	"errors"
-	"fmt"
 )
 
 type (
@@ -79,8 +78,11 @@ func makeGetAllEndpoint(ctx context.Context, s Service) Controller {
 func makeGetEndpoint(ctx context.Context, s Service) Controller {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(GetReq)
-		fmt.Println(req)
+		user, err := s.Get(ctx, req.ID)
+		if err != nil {
+			return nil, err
+		}
 
-		return nil, nil
+		return user, nil
 	}
 }

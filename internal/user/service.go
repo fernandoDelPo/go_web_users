@@ -10,6 +10,7 @@ type (
 	Service interface {
 		Create(ctx context.Context, firstName, lastName, email string) (*domain.User, error)
 		GetAll(ctx context.Context) ([]domain.User, error)
+		Get(ctx context.Context, id uint64) (*domain.User, error)
 	}
 
 	service struct {
@@ -32,7 +33,7 @@ func (s service) Create(ctx context.Context, firstName, lastName, email string) 
 		LastName:  lastName,
 		Email:     email,
 	}
-	if  err := s.repo.Create(ctx, user); err != nil {
+	if err := s.repo.Create(ctx, user); err != nil {
 		return nil, err
 	}
 
@@ -40,7 +41,7 @@ func (s service) Create(ctx context.Context, firstName, lastName, email string) 
 	return user, nil
 }
 
-func (s service)  GetAll(ctx context.Context) ([]domain.User, error) {
+func (s service) GetAll(ctx context.Context) ([]domain.User, error) {
 	users, err := s.repo.GetAll(ctx)
 	if err != nil {
 		return nil, err
@@ -50,4 +51,11 @@ func (s service)  GetAll(ctx context.Context) ([]domain.User, error) {
 	return users, nil
 }
 
+func (s service) Get(ctx context.Context, id uint64) (*domain.User, error) {
+	user, err := s.repo.Get(ctx, id)
+	if err != nil {
+		return nil, err
+	}
 
+	return user, nil
+}
