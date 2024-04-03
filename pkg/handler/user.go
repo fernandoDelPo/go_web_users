@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/fernandoDelPo/go_web_users/internal/user"
 	"github.com/fernandoDelPo/go_web_users/pkg/transport"
@@ -25,58 +26,60 @@ func UserServer(ctx context.Context, endpoints user.Endpoints) func(w http.Respo
 
 		path, pathSize := transport.Clean(url)
 
-		if pathSize < 3 || pathSize > 4 {
-			InvalidMethod(w)
-			return
-		}
-
 		params := make(map[string]string)
 
 		if pathSize == 4 && path[2] != "" {
 			params["userID"] = path[2]
 		}
-		ctx = context.WithValue(ctx, "params", params)
 
-		tran := transport.New(w, r, ctx)
+		tran := transport.New(w, r, context.WithValue(ctx, "params", params))
+
+		var end user.Controller
+		var deco func(ctx context.Context, r *http.Request) (interface{}, error)
+
 		switch r.Method {
 		case http.MethodGet:
 			switch pathSize {
 			case 3:
-				tran.Server(
-					transport.Endpoint(endpoints.GetAll),
-					decodeGetAllUsers,
-					encodeResponse,
-					encondeError)
+				end = endpoints.GetAll
+				deco = decodeGetAllUsers
 			case 4:
-				tran.Server(
-					nil,
-					decodeGetUser,
-					encodeResponse,
-					encondeError)
+				end = endpoints.Get
+				deco = decodeGetUser
 			}
 
 		case http.MethodPost:
 			switch pathSize {
 			case 3:
-				tran.Server(
-					transport.Endpoint(endpoints.Create),
-					decodeCreateUser,
-					encodeResponse,
-					encondeError)
-				return
+				end = endpoints.Create
+				deco = decodeCreateUser
 			}
 		}
-		InvalidMethod(w)
+		if end != nil && deco != nil {
+			tran.Server(
+				transport.Endpoint(end),
+				deco,
+				encodeResponse,
+				encondeError)
+		} else {
+			InvalidMethod(w)
+		}
+
 	}
 }
 
 func decodeGetUser(ctx context.Context, r *http.Request) (interface{}, error) {
 	params := ctx.Value("params").(map[string]string)
 
-	fmt.Println(params)
-	fmt.Println(params["userID"])
+	id, err := strconv.ParseUint(params["userID"], 10, 64)
 
-	return nil, fmt.Errorf("not implemented")
+	if err != nil {
+		return nil, err
+	}
+
+	return user.GetReq{
+		ID: id,
+	}, nil
 }
 
 func decodeGetAllUsers(ctx context.Context, r *http.Request) (interface{}, error) {

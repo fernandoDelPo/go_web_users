@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 	"errors"
+	"fmt"
 )
 
 type (
@@ -11,10 +12,14 @@ type (
 	Endpoints struct {
 		Create Controller
 		GetAll Controller
+		Get    Controller
 		Update Controller
 		Delete Controller
 	}
 
+	GetReq struct {
+		ID uint64
+	}
 	CreateRequest struct {
 		FirstName string `json:"first_name"`
 		LastName  string `json:"last_name"`
@@ -26,6 +31,7 @@ func MakeEndpoints(ctx context.Context, s Service) Endpoints {
 	return Endpoints{
 		Create: makeCreateEndpoint(ctx, s),
 		GetAll: makeGetAllEndpoint(ctx, s),
+		Get:    makeGetEndpoint(ctx, s),
 	}
 }
 
@@ -68,5 +74,13 @@ func makeGetAllEndpoint(ctx context.Context, s Service) Controller {
 
 		return users, nil
 	}
+}
 
+func makeGetEndpoint(ctx context.Context, s Service) Controller {
+	return func(ctx context.Context, request interface{}) (interface{}, error) {
+		req := request.(GetReq)
+		fmt.Println(req)
+
+		return nil, nil
+	}
 }
