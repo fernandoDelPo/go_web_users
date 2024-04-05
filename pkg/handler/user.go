@@ -54,6 +54,12 @@ func UserServer(ctx context.Context, endpoints user.Endpoints) func(w http.Respo
 				end = endpoints.Create
 				deco = decodeCreateUser
 			}
+		case http.MethodPatch:
+			switch pathSize {
+			case 4:
+				end = endpoints.Update
+				deco = decoUpdateUser
+			}
 		}
 		if end != nil && deco != nil {
 			tran.Server(
@@ -116,21 +122,24 @@ func encondeError(_ context.Context, err error, w http.ResponseWriter) {
 	fmt.Fprintf(w, `{"status": %d, "message":"%s"}`, status, err.Error())
 }
 
-// func MsgResponse(w http.ResponseWriter, status int, message string) {
+func decoUpdateUser(ctx context.Context, r *http.Request) (interface{}, error) {
+	var req user.UpdateRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		return nil, fmt.Errorf("error decoding request body:  '%v'", err.Error())
+	}
 
-// 	w.WriteHeader(status)
-// 	fmt.Fprintf(w, `{"status": %d, "message": "%s"}`, status, message)
-// }
+	params := ctx.Value("params").(map[string]string)
 
-// func DataResponse(w http.ResponseWriter, status int, users interface{}) {
-// 	value, err := json.Marshal(users)
-// 	if err != nil {
-// 		MsgResponse(w, http.StatusInternalServerError, err.Error())
-// 		return
-// 	}
-// 	w.WriteHeader(status)
-// 	fmt.Fprintf(w, `{"status": %d, "data": %s}`, status, value)
-//}
+	id, err := strconv.ParseUint(params["userID"], 10, 64)
+
+	if err != nil {
+		return nil, err
+	}
+	req.ID = id
+
+	return req, nil
+
+}
 
 func InvalidMethod(w http.ResponseWriter) {
 
