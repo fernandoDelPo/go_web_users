@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/fernandoDelPo/go-web-users-response/response"
 	"github.com/fernandoDelPo/go_web_users/internal/user"
 	"github.com/fernandoDelPo/go_web_users/pkg/transport"
 )
@@ -100,26 +101,23 @@ func decodeCreateUser(ctx context.Context, r *http.Request) (interface{}, error)
 	return req, nil
 }
 
-func encodeResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error {
-	data, err := json.Marshal(response)
-	if err != nil {
-		return err
-	}
+func encodeResponse(ctx context.Context, w http.ResponseWriter, resp interface{}) error {
 
-	status := http.StatusOK
-
-	w.WriteHeader(status)
+	r := resp.(response.Response)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	fmt.Fprintf(w, `{"status": %d, "data": %s}`, status, data)
-	return nil
+	w.WriteHeader(r.StatusCode())
+
+	return json.NewEncoder(w).Encode(resp)
 
 }
 
 func encondeError(_ context.Context, err error, w http.ResponseWriter) {
-	status := http.StatusInternalServerError
-	w.WriteHeader(status)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	fmt.Fprintf(w, `{"status": %d, "message":"%s"}`, status, err.Error())
+	resp := err.(response.Response)
+
+	w.WriteHeader(resp.StatusCode())
+	
+	_ = json.NewEncoder(w).Encode(resp)
 }
 
 func decoUpdateUser(ctx context.Context, r *http.Request) (interface{}, error) {

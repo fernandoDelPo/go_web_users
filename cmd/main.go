@@ -15,7 +15,19 @@ func main() {
 
 	server := http.NewServeMux()
 
-	db := bootstrapt.NewDB()
+	db, err := bootstrapt.NewDB()
+	if err != nil {
+		log.Fatalf("Error creating database connection: %s", err)
+	}
+
+	defer  db.Close()
+
+	if err := db.Ping(); err != nil  {
+		log.Fatalf("Failed to ping the DB: %v\n", err)
+	} else {
+		log.Println("Connected to the Database")
+	}
+
 	logger := bootstrapt.NewLogger()
 
 	repo := user.NewDBRepository(db, logger)

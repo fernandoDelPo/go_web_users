@@ -2,6 +2,9 @@ package user
 
 import (
 	"context"
+	"errors"
+
+	"github.com/fernandoDelPo/go-web-users-response/response"
 )
 
 type (
@@ -46,11 +49,11 @@ func makeCreateEndpoint(ctx context.Context, s Service) Controller {
 		req := request.(CreateRequest)
 
 		if req.FirstName == "" {
-			return nil, ErrFirstNameRequired
+			return nil, response.BadRequest(ErrFirstNameRequired.Error())
 		}
 
 		if req.LastName == "" {
-			return nil, ErrLastNameRequired
+			return nil, response.BadRequest(ErrLastNameRequired.Error())
 		}
 
 		// if req.Email == "" {
@@ -64,10 +67,10 @@ func makeCreateEndpoint(ctx context.Context, s Service) Controller {
 
 		user, err := s.Create(ctx, req.FirstName, req.LastName, req.Email)
 		if err != nil {
-			return nil, err
+			return nil, response.InternalServerError(err.Error())
 		}
 
-		return user, nil
+		return response.Created("success", user), nil
 
 	}
 }
@@ -76,10 +79,10 @@ func makeGetAllEndpoint(ctx context.Context, s Service) Controller {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		users, err := s.GetAll(ctx)
 		if err != nil {
-			return nil, err
+			return nil, response.InternalServerError(err.Error())
 		}
 
-		return users, nil
+		return response.OK("success", users), nil
 	}
 }
 
@@ -88,10 +91,13 @@ func makeGetEndpoint(ctx context.Context, s Service) Controller {
 		req := request.(GetReq)
 		user, err := s.Get(ctx, req.ID)
 		if err != nil {
-			return nil, err
+			if errors.As(err, &ErrNotFound{}){
+				return  nil, response.NotFound(err.Error())
+			}
+			return nil, response.InternalServerError(err.Error())
 		}
 
-		return user, nil
+		return response.OK("success", user), nil
 	}
 }
 
@@ -100,16 +106,19 @@ func makeUpdateEndpoint(ctx context.Context, s Service) Controller {
 		req := request.(UpdateRequest)
 
 		if req.FirstName != nil && *req.FirstName == "" {
-			return nil, ErrFirstNameRequired
+			return nil, response.BadRequest(ErrFirstNameRequired.Error())
 		}
 
 		if req.LastName != nil && *req.LastName == "" {
-			return nil, ErrLastNameRequired
+			return nil, response.BadRequest(ErrLastNameRequired.Error())
 		}
 
 		if err := s.Update(ctx, req.ID, req.FirstName, req.LastName, req.Email); err != nil {
-			return nil, err
+			if errors.As(err, &ErrNotFound{}){
+				return  nil, response.NotFound(err.Error())
+			}
+			return nil, response.InternalServerError(err.Error())
 		}
-		return nil, nil
+		return response.OK("success", nil), nil
 	}
 }

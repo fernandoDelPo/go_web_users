@@ -1,8 +1,10 @@
 package bootstrapt
 
 import (
-	"github.com/fernandoDelPo/go_web_users/internal/domain"
-	"github.com/fernandoDelPo/go_web_users/internal/user"
+	_ "github.com/go-sql-driver/mysql"
+	//"github.com/fernandoDelPo/go_web_users/internal/domain"
+	//"github.com/fernandoDelPo/go_web_users/internal/user"
+	"database/sql"
 	"log"
 	"os"
 )
@@ -11,29 +13,13 @@ func NewLogger() *log.Logger {
 	return log.New(os.Stdout, "", log.LstdFlags|log.Lshortfile)
 }
 
-func NewDB() user.DB {
-	return user.DB{
-		Users: []domain.User{{
-			ID:        1,
-			FirstName: "fernando",
-			LastName:  "Del Pozzi",
-			Email:     "fernandodelpozzi@example.com",
-		}, {
-			ID:        2,
-			FirstName: "Leticia",
-			LastName:  "Caceres",
-			Email:     "leticia@example.com",
-		}, {
-			ID:        3,
-			FirstName: "Francesca",
-			LastName:  "Del Pozzi",
-			Email:     "fran@example.com",
-		}, {
-			ID:        4,
-			FirstName: "Maxima",
-			LastName:  "Perez",
-			Email:     "mperez@example.com",
-		}},
-		MaxUserID: 4,
+func NewDB() (*sql.DB, error) {
+
+	db, err := sql.Open("mysql", "root:root@tcp(127.0.0.1:3336)/go_course_users")
+
+	if err != nil {
+		return nil, err
 	}
+
+	return  db, nil	
 }
