@@ -2,12 +2,11 @@ package user
 
 import (
 	"context"
-	"log"
 	"database/sql"
+	"log"
 
 	"github.com/fernandoDelPo/go_web_users/internal/domain"
 )
-
 
 type (
 	Repository interface {
@@ -31,16 +30,50 @@ func NewDBRepository(db *sql.DB, l *log.Logger) Repository {
 }
 
 func (r *dbRepo) Create(ctx context.Context, user *domain.User) error {
-	// r.db.MaxUserID++
-	// user.ID = r.db.MaxUserID
-	// r.db.Users = append(r.db.Users, *user)
-	// r.log.Println("Created User with ID ", user.ID)
+	sqlQ := "INSERT INTO users (first_name, last_name, email) VALUES (?,?,?)"
+	res, err := r.db.Exec(sqlQ, user.FirstName, user.LastName, user.Email)
+
+	if err != nil {
+		r.log.Printf("Error creating the user %s", err.Error())
+		return err
+	}
+
+	id, err := res.LastInsertId()
+	if err != nil {
+		r.log.Println("Could not get the ID of the created user")
+		return err
+	}
+
+	user.ID = uint64(id)
+	r.log.Println("Created User with ID ", user.ID)
+
 	return nil
 }
 
 func (r *dbRepo) GetAll(ctx context.Context) ([]domain.User, error) {
-	r.log.Println("Retrieving all users")
-	return nil, nil
+	var users []domain.User
+	sqlQ := "SELECT id, first_name, last_name, email FROM users"
+
+	rows, err := r.db.Query(sqlQ)
+
+	if err != nil {
+		r.log.Println("Failed to retrieve all users from DB : ", err.Error())
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var u domain.User
+		if err := rows.Scan(&u.ID, &u.FirstName, &u.LastName, &u.Email); err != nil {
+			r.log.Printf("Failed to scan row: %v\n", err)
+			return nil, err
+		}
+		users = append(users, u)
+	}
+	r.log.Println(len(users), " Users retrieved successfully!")
+
+	return users, nil
 }
 
 func (r *dbRepo) Get(ctx context.Context, id uint64) (*domain.User, error) {
