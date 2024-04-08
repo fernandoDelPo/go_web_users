@@ -3,7 +3,9 @@ package user
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log"
+	"strings"
 
 	"github.com/fernandoDelPo/go_web_users/internal/domain"
 )
@@ -77,34 +79,69 @@ func (r *dbRepo) GetAll(ctx context.Context) ([]domain.User, error) {
 }
 
 func (r *dbRepo) Get(ctx context.Context, id uint64) (*domain.User, error) {
-	// index := slices.IndexFunc(r.db.Users, func(v domain.User) bool {
-	// 	return v.ID == id
-	// })
+	sqlQ := "SELECT id, first_name, last_name, email FROM users WHERE id = ?"
 
-	// if index < 0 {
-	// 	return nil, ErrNotFound{id}
-	// }
-	return nil, nil
+	var u domain.User
+
+	if err := r.db.QueryRow(sqlQ, id).Scan(&u.ID, &u.FirstName, &u.LastName, &u.Email); err != nil {
+		r.log.Printf("Failed to get user by ID [%d]: %s\n", id, err.Error())
+		if err == sql.ErrNoRows {
+			return nil, ErrNotFound{ID: id}
+		}
+		return nil, err
+	}
+	r.log.Printf("User with ID[%d] Retrieved Successfully!\n", u.ID)
+
+	return &u, nil
+
 }
 
 func (r *dbRepo) Update(ctx context.Context, id uint64, firstName, lastName, email *string) error {
-	// user, err := r.Get(ctx, id)
-	// if err != nil {
-	// 	return err
-	// }
+	var fields []string
+	var values []interface{}
 
-	// if firstName != nil {
-	// 	user.FirstName = *firstName
-	// }
+	if firstName != nil {
+		fields = append(fields, "first_name = ?")
+		values = append(values, *firstName)
+	}
 
-	// if lastName != nil {
-	// 	user.LastName = *lastName
-	// }
+	if lastName != nil {
+		fields = append(fields, "last_name = ?")
+		values = append(values, *lastName)
+	}
 
-	// if email != nil {
-	// 	user.Email = *email
-	// }
+	if email != nil {
+		fields = append(fields, "email = ?")
+		values = append(values, *email)
+	}
 
-	// r.log.Printf("Updated User %d: %s %s", user.ID, user.FirstName, user.LastName)
+	if len(fields) == 0 {
+		r.log.Println(ErrThereArentFields.Error())
+		return ErrThereArentFields
+	}
+
+	values = append(values, id)
+
+	sqlQ := fmt.Sprintf("UPDATE users SET %s WHERE id = ?", strings.Join(fields, ","))
+
+	res, err := r.db.Exec(sqlQ, values...)
+	if err != nil {
+		r.log.Printf("%v\n", err.Error())
+		return err
+	}
+	row, err := res.RowsAffected()
+	if err != nil {
+		r.log.Printf("%v\n", err.Error())
+		return err
+	}
+
+	if row <= 0 {
+		err := ErrNotFound{id}
+		r.log.Println(err.Error())
+		return err
+	}
+
+	r.log.Println("user updated id: ", id)
+
 	return nil
 }

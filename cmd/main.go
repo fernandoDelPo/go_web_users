@@ -5,24 +5,25 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/fernandoDelPo/go_web_users/internal/user"
 	"github.com/fernandoDelPo/go_web_users/pkg/bootstrapt"
 	"github.com/fernandoDelPo/go_web_users/pkg/handler"
+	"github.com/joho/godotenv"
 )
 
 func main() {
-
-	server := http.NewServeMux()
+	_ = godotenv.Load()
 
 	db, err := bootstrapt.NewDB()
 	if err != nil {
 		log.Fatalf("Error creating database connection: %s", err)
 	}
 
-	defer  db.Close()
+	defer db.Close()
 
-	if err := db.Ping(); err != nil  {
+	if err := db.Ping(); err != nil {
 		log.Fatalf("Failed to ping the DB: %v\n", err)
 	} else {
 		log.Println("Connected to the Database")
@@ -35,9 +36,31 @@ func main() {
 
 	ctx := context.Background()
 
-	handler.NewUserHTPPServer(ctx, server,user.MakeEndpoints(ctx, service))
+	h := handler.NewUserHTPPServer(user.MakeEndpoints(ctx, service))
 
-	fmt.Println("Starting server on port :8080")
-	log.Fatal(http.ListenAndServe(":8080", server))
+	port := os.Getenv("PORT")
+	fmt.Println("Starting server on port: ", port)
 
+	address := fmt.Sprintf("127.0.0.1:%s", port)
+
+	srv := &http.Server{
+		Addr: address, 
+		Handler: accessControl(h),
+	}
+	log.Fatal(srv.ListenAndServe())
+
+}
+
+func accessControl(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, OPTIONS, HEAD, DELETE")
+		w.Header().Set("Access-Control-Allow-Headers", "Accept,Authorization,Cache-Control,Content-Type,DNT,If-Modified-Since,Keep-Alive,Origin,User-Agent,X-Requested-With")
+
+		if r.Method == "OPTIONS" {
+			return
+		}
+
+		h.ServeHTTP(w, r)
+	})
 }
